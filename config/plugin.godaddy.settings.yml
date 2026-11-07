@@ -1,0 +1,9 @@
+# GoDaddy — core/config/plugin.godaddy.settings.yml
+#
+# The GoDaddy API (developer.godaddy.com → API Keys, a production key and secret) for the domain and its DNS; the hosting account itself is reached over SSH with the key below (GoDaddy Web Hosting and cPanel plans allow SSH once enabled in the hosting dashboard).
+# A production API key from developer.godaddy.com → API Keys. Sent as sso-key KEY:SECRET.
+api_key: CHANGE_ME
+# The secret of that key.
+api_secret: CHANGE_ME
+# The private key the pulls and deploys use to reach the hosting account over SSH. Default: ~/.ssh/id_ed25519.
+ssh_key: ~/.ssh/id_ed25519

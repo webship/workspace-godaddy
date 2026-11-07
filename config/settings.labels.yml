@@ -1,0 +1,10 @@
+# Labels for core/config/plugin.godaddy.settings.yml, merged into the Settings page.
+api_key:
+  label: GoDaddy API key
+  info: 'A production API key from developer.godaddy.com → API Keys. Sent as sso-key KEY:SECRET.'
+api_secret:
+  label: GoDaddy API secret
+  info: 'The secret of that key.'
+ssh_key:
+  label: SSH key for the hosting account
+  info: 'The private key the pulls and deploys use to reach the hosting account over SSH. Default: ~/.ssh/id_ed25519.'

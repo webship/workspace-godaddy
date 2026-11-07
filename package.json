@@ -1,0 +1,73 @@
+{
+  "name": "@webship/workspace-godaddy",
+  "version": "1.0.0",
+  "description": "GoDaddy for Webship Workspace: the GODADDY menu on every site row, the domain and its DNS from the GoDaddy API, the hosting account over SSH (get database and files, deploy with rsync, the error log), the GoDaddy console. A provider of @webship/workspace-hosting.",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "private": true,
+  "license": "ISC",
+  "repository": "github:webship/workspace-godaddy",
+  "files": [
+    "dist/src",
+    "commands",
+    "config",
+    "features",
+    "scripts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "workspacePlugin": {
+    "name": "godaddy",
+    "label": "GoDaddy",
+    "settingsFile": "plugin.godaddy.settings.yml",
+    "settingsTemplate": "config/plugin.godaddy.settings.yml",
+    "labels": "config/settings.labels.yml",
+    "legacySettingsKey": "godaddy",
+    "typeActions": {
+      "godaddy": [
+        "sites"
+      ]
+    },
+    "commands": {
+      "types": [
+        "sites"
+      ],
+      "workspaces": [
+        "dev",
+        "test",
+        "demos",
+        "sandboxes",
+        "projects"
+      ],
+      "files": [
+        "commands/cmd-tools-godaddy.sh"
+      ]
+    },
+    "scripts": {
+      "functions": [
+        "scripts/functions/fun-godaddy.sh",
+        "scripts/functions/fun-godaddy-tool.sh"
+      ],
+      "args": [
+        "scripts/args/arg-godaddy.sh"
+      ],
+      "hostInstall": "scripts/host-install.sh"
+    },
+    "features": [
+      "features/godaddy.feature"
+    ]
+  },
+  "dependencies": {
+    "@webship/workspace-hosting": "github:webship/workspace-hosting#1.0.x"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@webship/workspace-plugin-api": "github:webship/workspace-plugin-api#1.0.x",
+    "typescript": "^5.9.0"
+  }
+}
