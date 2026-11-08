@@ -1,12 +1,12 @@
-# @webship/workspace-godaddy
+# @webship.co/workspace-godaddy
 
 GoDaddy for the [Webship Workspace](https://github.com/webship/workspace) dashboard: the **GODADDY**
 menu on every site row, a live-site chip on the project card, "Link to GoDaddy" when a new folder is
 made, and the `cmd-tools-godaddy.sh` command in every site workspace. A provider of
-[`@webship/workspace-hosting`](https://github.com/webship/workspace-hosting), which draws the menu,
+[`@webship.co/workspace-hosting`](https://github.com/webship/workspace-hosting), which draws the menu,
 the environments modal, the get-database-and-files flow and the New-folder section for every host.
 
-GoDaddy's API (developer.godaddy.com) answers for the domain and its DNS: the environments are the domain and the host names its A and CNAME records make live. The hosting account (Web Hosting, cPanel plans) is reached over SSH like any cPanel server, so the database, the files, the deploy and the log work the same way as `@webship/workspace-cpanel`. The link is `domain` for DNS only, or `domain,user@host:/remote/docroot` for the hosting too.
+GoDaddy's API (developer.godaddy.com) answers for the domain and its DNS: the environments are the domain and the host names its A and CNAME records make live. The hosting account (Web Hosting, cPanel plans) is reached over SSH like any cPanel server, so the database, the files, the deploy and the log work the same way as `@webship.co/workspace-cpanel`. The link is `domain` for DNS only, or `domain,user@host:/remote/docroot` for the hosting too.
 
 ## Use it
 
