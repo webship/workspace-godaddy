@@ -26,6 +26,27 @@
   "workspacePlugin": {
     "name": "godaddy",
     "label": "GoDaddy",
+    "needs": {
+      "plugins": [
+        [
+          "dev",
+          "test",
+          "demos",
+          "sandboxes",
+          "projects"
+        ]
+      ],
+      "commands": [
+        "curl",
+        "python3"
+      ]
+    },
+    "suggests": {
+      "commands": [
+        "ssh",
+        "rsync"
+      ]
+    },
     "settingsFile": "plugin.godaddy.settings.yml",
     "settingsTemplate": "config/plugin.godaddy.settings.yml",
     "labels": "config/settings.labels.yml",
