@@ -18,6 +18,12 @@ import { godaddyProvider } from './lib/provider';
 export { godaddyProvider };
 export { godaddyLinkOf } from './lib/link';
 
+/** The AI items the installer places: agents in ai-agents/, skills in ai-skills/, commands in ai-commands/, prompts in ai-prompts/. */
+export const AGENTS: string[] = ['godaddy-deployer'];
+export const SKILLS: string[] = ['godaddy-hosting'];
+export const AI_COMMANDS: string[] = ['godaddy-status'];
+export const PROMPTS: string[] = ['godaddy-test-then-deploy'];
+
 export function register(api: PluginApi): void {
   registerHosting(api, godaddyProvider(api));
 }
