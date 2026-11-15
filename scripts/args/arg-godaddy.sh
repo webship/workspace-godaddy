@@ -27,7 +27,7 @@ parser.add_argument('-n', '--dns',
 parser.add_argument('-D', '--pull-db',
                     action='store_true',
                     default=False,
-                    help='Dump the site's database over SSH (drush sql:dump in the remote docroot) and import it into DDEV. REPLACES the local database — the current one is exported to backups/ first. Client data.')
+                    help='Dump the site\'s database over SSH (drush sql:dump in the remote docroot) and import it into DDEV. REPLACES the local database — the current one is exported to backups/ first. Client data.')
 parser.add_argument('-F', '--pull-files',
                     action='store_true',
                     default=False,
@@ -35,7 +35,7 @@ parser.add_argument('-F', '--pull-files',
 parser.add_argument('-g', '--logs',
                     action='store_true',
                     default=False,
-                    help='Show the last 50 lines of the site's error_log over SSH.')
+                    help='Show the last 50 lines of the site\'s error_log over SSH.')
 parser.add_argument('-B', '--no-safety-backup',
                     action='store_true',
                     default=False,
