@@ -6,15 +6,31 @@
 # --link, --push, --pull-db and --pull-files each demand their flag, and nothing here ever changes
 # a DNS record.
 
-function godaddy_key() { printf '%s' "${GODADDY_API_KEY:-${api_key:-}}" ; }
-function godaddy_secret() { printf '%s' "${GODADDY_API_SECRET:-${api_secret:-}}" ; }
-function godaddy_ssh_key() { local k="${GODADDY_SSH_KEY:-${ssh_key:-~/.ssh/id_ed25519}}"; printf '%s' "${k/#\~/${HOME}}" ; }
+# One value of core/config/plugin.godaddy.settings.yml, read the way scripts/host-install.sh reads it
+# (quotes and a trailing comment stripped), or nothing: an empty value or CHANGE_ME is not set. The
+# command parses only its folder's settings and the menu's verbs run it with no extra environment, so
+# this file is where a run finds what the Settings page wrote.
+function godaddy_setting() {
+  local file="${WORKSPACE_CONFIG}/plugin.godaddy.settings.yml" value;
+  [ -f "${file}" ] || return 0 ;
+  value="$(grep -E "^$1:" "${file}" | head -1 | sed -E 's/^[a-z_]+:[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//')";
+  value="${value#[\"\']}"; value="${value%[\"\']}";
+  [ "${value}" == 'CHANGE_ME' ] && value="";
+  printf '%s' "${value}" ;
+}
+
+# The dashboard hands its own jobs GODADDY_API_KEY, GODADDY_API_SECRET and GODADDY_SSH_KEY, which win.
+function godaddy_key() { printf '%s' "${GODADDY_API_KEY:-$(godaddy_setting api_key)}" ; }
+function godaddy_secret() { printf '%s' "${GODADDY_API_SECRET:-$(godaddy_setting api_secret)}" ; }
+function godaddy_ssh_key() { local k="${GODADDY_SSH_KEY:-$(godaddy_setting ssh_key)}"; k="${k:-~/.ssh/id_ed25519}"; printf '%s' "${k/#\~/${HOME}}" ; }
 
 function ensure_godaddy() {
+  local key secret;
   for tool in curl python3 ; do
     command -v "${tool}" > /dev/null 2>&1 || { echo "${tool} is not installed, and the GoDaddy tool needs it."; return 1; } ;
   done
-  if [ -z "$(godaddy_key)" ] || [ "$(godaddy_key)" == 'CHANGE_ME' ] ; then
+  key="$(godaddy_key)"; secret="$(godaddy_secret)";
+  if [ -z "${key}" ] || [ "${key}" == 'CHANGE_ME' ] || [ -z "${secret}" ] || [ "${secret}" == 'CHANGE_ME' ] ; then
     echo "No GoDaddy API key: set api_key and api_secret in core/config/plugin.godaddy.settings.yml (developer.godaddy.com → API Keys, production)." ;
     return 1 ;
   fi
@@ -22,7 +38,11 @@ function ensure_godaddy() {
 }
 
 function godaddy_api() {
-  curl -sS -m 30 -H "Authorization: sso-key $(godaddy_key):$(godaddy_secret)" -H "Accept: application/json" "https://api.godaddy.com/v1/$1" ;
+  local key secret;
+  key="$(godaddy_key)"; secret="$(godaddy_secret)";
+  # Never a request without the key and its secret: it would leave this machine for nothing.
+  [ -n "${key}" ] && [ -n "${secret}" ] || return 1 ;
+  curl -sS -m 30 -H "Authorization: sso-key ${key}:${secret}" -H "Accept: application/json" "https://api.godaddy.com/v1/$1" ;
 }
 
 # domain[,user@host:/remote/docroot]
