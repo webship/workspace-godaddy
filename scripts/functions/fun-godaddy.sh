@@ -29,7 +29,7 @@ function godaddy_api() {
 function godaddy_do_link() {
   local project_path="$1" spec="$2" domain ssh user host remote;
   domain="${spec%%,*}"; ssh="${spec#*,}"; [ "${ssh}" == "${spec}" ] && ssh="";
-  godaddy_api "domains/${domain}" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(1 if d.get("code") else 0)' \
+  godaddy_api "domains/${domain}" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(1 if d.get("code") else 0)' 2>/dev/null \
     || { echo "The GoDaddy account does not have ${domain} (or the key cannot see it)."; return 1; } ;
   godaddy_link_set "${project_path}" id "${domain}" ;
   godaddy_link_set "${project_path}" env "${domain}" ;
@@ -59,9 +59,10 @@ for r in json.load(sys.stdin):
 function godaddy_do_environments() {
   local domain="$2";
   godaddy_api "domains/${domain}" | python3 -c 'import json,sys
-d=json.load(sys.stdin)
+try: d=json.load(sys.stdin)
+except ValueError: print("  (no answer from the GoDaddy API for %s)" % sys.argv[1]); sys.exit(1)
 if d.get("code"): print("  " + str(d.get("message", d["code"]))); sys.exit(1)
-print("  %-40s %-10s expires %s   ns %s" % (d.get("domain",""), (d.get("status") or "").lower(), (d.get("expires") or "")[:10], ", ".join(d.get("nameServers") or [])))' || return 1 ;
+print("  %-40s %-10s expires %s   ns %s" % (d.get("domain",""), (d.get("status") or "").lower(), (d.get("expires") or "")[:10], ", ".join(d.get("nameServers") or [])))' "${domain}" 2>/dev/null || return 1 ;
   godaddy_api "domains/${domain}/records" | python3 -c 'import json,sys
 for r in json.load(sys.stdin):
     if r.get("type") in ("A","CNAME"):
@@ -139,20 +140,29 @@ function godaddy_do_logs() {
 
 function godaddy_do_dns() {
   godaddy_api "domains/$2/records" | python3 -c 'import json,sys
-for r in json.load(sys.stdin): print("  %-6s %-30s %-40s ttl %s" % (r.get("type",""), r.get("name",""), r.get("data",""), r.get("ttl","")))' ;
+for r in json.load(sys.stdin): print("  %-6s %-30s %-40s ttl %s" % (r.get("type",""), r.get("name",""), r.get("data",""), r.get("ttl","")))' 2>/dev/null \
+    || { echo "  (could not list the DNS records of $2)"; return 1; } ;
 }
 
 function godaddy_status() {
-  local project_path="$1" domain="$2";
+  local project_path="$1" domain="$2" missing rc=0;
   if [ -z "${domain}" ] ; then
     echo "    (the link is the domain, optionally ,user@host:/remote/docroot for the hosting)";
     return 0 ;
   fi
   echo "    hosting: $(godaddy_link_get "${project_path}" ssh):$(godaddy_link_get "${project_path}" remote)";
   echo "";
-  godaddy_do_environments "${project_path}" "${domain}" ;
-  if [ "${DNS:-no}" == 'yes' ] ; then echo ""; godaddy_do_dns "${project_path}" "${domain}" ; fi
+  # The domain and its DNS come from the GoDaddy API: without curl, python3 or the key, say once what
+  # is missing, in ensure_godaddy's words, call nothing, and fail. The link and the console still show.
+  if missing="$(ensure_godaddy)" ; then
+    godaddy_do_environments "${project_path}" "${domain}" || rc=1 ;
+    if [ "${DNS:-no}" == 'yes' ] && [ "${rc}" == 0 ] ; then echo ""; godaddy_do_dns "${project_path}" "${domain}" || rc=1 ; fi
+  else
+    [ -n "${missing}" ] && sed 's/^/  /' <<< "${missing}" ;
+    rc=1 ;
+  fi
   echo "";
   echo "  Console: https://dcc.godaddy.com/control/portfolio/${domain}/settings";
   echo "  Data: --pull-db and --pull-files bring the site down into DDEV over SSH; --push deploys with rsync.";
+  return ${rc} ;
 }

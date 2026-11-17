@@ -11,7 +11,7 @@
 #   godaddy_do_push <project_path> <id> <env>   deploy
 #   godaddy_do_logs <project_path> <id> <env>
 #   godaddy_do_activities <project_path> <id>
-#   godaddy_status <project_path> <id>          the closing status block
+#   godaddy_status <project_path> <id>          the closing status block; fails when the provider cannot be reached
 
 GODADDY_LINK_FILE=".godaddy/workspace.yml";
 
@@ -152,7 +152,9 @@ function godaddy_project_tool() {
     godaddy_do_activities "${project_path}" "${linked_id}" || true ;
   fi
 
-  # Default (and after any verb): status.
+  # Default (and after any verb): status. The local part always shows; when the provider cannot be
+  # reached (no CLI, no login, no token), godaddy_status says what is missing and the run fails.
+  local status_rc=0;
   echo "";
   echo "*---------------------------------------------------------------------*";
   echo "  ${doc_name}/${PROJECT_NAME} on GoDaddy";
@@ -165,9 +167,10 @@ function godaddy_project_tool() {
     local selected;
     selected="$(godaddy_selected_env "${project_path}")";
     echo "    env:     ${selected:-none selected — --environments then --select <name>}";
-    godaddy_status "${project_path}" "${linked_id}" ;
+    godaddy_status "${project_path}" "${linked_id}" || status_rc=1 ;
   fi
   echo "*---------------------------------------------------------------------*";
 
   cd "${WORKSPACE_ROOT}/${doc_name}";
+  return ${status_rc} ;
 }
