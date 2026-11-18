@@ -89,3 +89,30 @@ test('the provider: id, script, verbs, token gate and console', () => {
   assert.strictEqual(p.jobEnv(), null, 'CHANGE_ME is no credential');
   assert.match(String(p.consoleUrl({ id: 'example.com', fields: {} } as any)), /^https:\/\//);
 });
+
+test('the credential never rides on curl\'s command line: it is read from a header file only its owner can read, removed after', async () => {
+  const PATH = process.env.PATH;
+  process.env.PATH = fs.mkdtempSync(path.join(os.tmpdir(), 'no-cli-'));   // no CLI: the REST API through curl
+  try {
+    const seen: any[] = [];
+    const lib: any = {
+      cliError: (s: string) => s,
+      run: async (cmd: string, args: string[]) => {
+        const at = args.find((a) => a.startsWith('@'));
+        const file = at ? at.slice(1) : '';
+        seen.push({ cmd, args, file, text: file ? fs.readFileSync(file, 'utf8') : '', mode: file ? (fs.statSync(file).mode & 0o777) : 0 });
+        return { ok: true, code: 0, stdout: '{"status":"ACTIVE"}', stderr: '' };
+      },
+    };
+    await (godaddyProvider(fakeApi(os.tmpdir()).api) as any).environments({ id: 'example.org' }, lib, { ...process.env, GODADDY_API_KEY: 'gd-key-x', GODADDY_API_SECRET: 'gd-secret-x' });
+    assert.ok(seen.length >= 1 && seen.every((s) => s.cmd === 'curl'), JSON.stringify(seen.map((s) => s.cmd)));
+    for (const s of seen) {
+      assert.ok(!s.args.some((a: string) => a.includes('gd-secret-x')), `not on the command line: ${s.args.join(' ')}`);
+      assert.match(s.text, /^Authorization: sso-key gd-key-x:gd-secret-x$/m, 'in the header file');
+      assert.strictEqual(s.mode, 0o600);
+      assert.ok(!fs.existsSync(s.file), 'the file is removed after the call');
+    }
+  } finally {
+    process.env.PATH = PATH;
+  }
+});
