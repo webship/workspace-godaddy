@@ -7,11 +7,28 @@
  * cmd-tools-godaddy.sh in a screen session.
  */
 
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import type { PluginApi, PluginLib } from '@webship.co/workspace-plugin-api';
 import { configured } from '@webship.co/workspace-hosting';
 import type { EnvInfo, EnvRow, HostingLink, HostingProvider } from '@webship.co/workspace-hosting';
 
 import { godaddyLinkOf } from './link';
+
+/**
+ * Run `fn` with curl arguments that read these header lines from a file only this user can read, removed
+ * after. On curl's command line a token is readable by every account of the machine for as long as curl
+ * runs (`ps`, /proc/<pid>/cmdline); `-H @file` (curl 7.55+) keeps it off.
+ */
+export async function withHeaderFile<T>(headers: string[], fn: (args: string[]) => Promise<T>): Promise<T> {
+  if (!headers.length) return fn([]);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ws-curl-'));
+  const file = path.join(dir, 'headers');
+  fs.writeFileSync(file, `${headers.join('\n')}\n`, { mode: 0o600 });
+  try { return await fn(['-H', `@${file}`]); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
 
 export function godaddyProvider(api: PluginApi): HostingProvider {
   const settings = () => api.settings.read() || {};
@@ -24,12 +41,13 @@ export function godaddyProvider(api: PluginApi): HostingProvider {
   async function environments(link: HostingLink, lib: PluginLib, env: NodeJS.ProcessEnv): Promise<EnvInfo> {
     const domain = link.id as string;
     const auth = `Authorization: sso-key ${env.GODADDY_API_KEY}:${env.GODADDY_API_SECRET}`;
-    const info = await lib.run('curl', ['-sS', '-m', '30', '-H', auth, `https://api.godaddy.com/v1/domains/${encodeURIComponent(domain)}`], process.env.HOME, { timeoutMs: 40 * 1000, env });
+    // The key and secret in a header file, never on curl's command line (withHeaderFile).
+    const info = await withHeaderFile([auth], (h) => lib.run('curl', ['-sS', '-m', '30', ...h, `https://api.godaddy.com/v1/domains/${encodeURIComponent(domain)}`], process.env.HOME, { timeoutMs: 40 * 1000, env }));
     if (!info.ok) return { id: domain, rows: [], why: 'list failed' };
     let d: any; try { d = JSON.parse(String(info.stdout)); } catch (_) { return { id: domain, rows: [], why: 'list failed' }; }
     if (d.code) return { id: domain, rows: [], why: String(d.message || d.code) };
     const rows: EnvRow[] = [{ title: `${domain} (${String(d.status || '').toLowerCase()})`, envId: domain, status: /^active$/i.test(d.status) ? 'active' : String(d.status || 'unknown').toLowerCase(), url: `https://${domain}` }];
-    const recs = await lib.run('curl', ['-sS', '-m', '30', '-H', auth, `https://api.godaddy.com/v1/domains/${encodeURIComponent(domain)}/records`], process.env.HOME, { timeoutMs: 40 * 1000, env });
+    const recs = await withHeaderFile([auth], (h) => lib.run('curl', ['-sS', '-m', '30', ...h, `https://api.godaddy.com/v1/domains/${encodeURIComponent(domain)}/records`], process.env.HOME, { timeoutMs: 40 * 1000, env }));
     if (recs.ok) {
       try {
         for (const r of JSON.parse(String(recs.stdout)) as { type: string; name: string; data: string }[]) {
